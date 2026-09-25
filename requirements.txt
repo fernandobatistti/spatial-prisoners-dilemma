@@ -1,0 +1,9 @@
+# Para refazer figuras e tabelas: numpy, scipy, matplotlib, pandas (e um LaTeX instalado).
+# Para refazer os dados (experimentos): também numba.
+# Para as verificações simbólicas dos apêndices: sympy.
+numpy>=1.24
+scipy>=1.10
+matplotlib>=3.7
+pandas>=2.0
+numba>=0.58
+sympy>=1.12

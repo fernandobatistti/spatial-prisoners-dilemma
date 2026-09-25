@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "Se usar este código ou estes dados, cite a dissertação abaixo."
+title: "Dilema do Prisioneiro espacial em redes bidimensionais no limiar da percolação sob mutação: código e dados"
+type: software
+authors:
+  - family-names: "Batistti"
+    given-names: "Fernando José Zardinello"
+    affiliation: "Universidade Federal da Integração Latino-Americana (UNILA)"
+    email: "ifernandooow@gmail.com"
+license: MIT
+version: "1.0.0"
+date-released: "2026-10-01"
+repository-code: "https://github.com/fernandobatistti/spatial-prisoners-dilemma"
+references:
+  - type: thesis
+    title: "Dilema do Prisioneiro espacial em redes bidimensionais no limiar da percolação sob mutação"
+    thesis-type: "Dissertação de Mestrado"
+    authors:
+      - family-names: "Batistti"
+        given-names: "Fernando José Zardinello"
+    institution:
+      name: "Universidade Federal da Integração Latino-Americana"
+    year: 2026

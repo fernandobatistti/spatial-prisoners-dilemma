@@ -1,0 +1,2 @@
+Tamanho do Ensemble: 1
+Sementes: [44]

@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+figuras/
+# saídas volumosas do engine_v2.py: só os logs CSV do diagnóstico entram no repositório
+v2_*/checkpoints/
+v2_*/frames/
+v2_*/data/*/substrato_*.npz
+diagnostico/snaps_*.npz
+diagnostico/b1.*/
