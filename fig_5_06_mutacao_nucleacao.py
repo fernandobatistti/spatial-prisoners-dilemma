@@ -110,3 +110,90 @@ def theta_bootstrap(n_bs=1000, semente=7, p_min=0.9, n_taxas=3):
 
 
 theta_bootstrap()
+
+
+# ==============================================================================
+# TESTE DE COLAPSO EM mu*t (Seção 5.4.4), com incerteza por bootstrap
+# ==============================================================================
+# Para cada célula (b, p, L) com escape em pelo menos metade das realizações em três ou mais
+# taxas, toma-se a curva mediana do raio da colônia (normalizado pelo alvo L/2) contra o tempo,
+# uma por taxa. Duas medidas de dispersão entre essas curvas, em log10:
+#   vertical   = desvio-padrão de log10(raio) entre as taxas, médio sobre a janela comum;
+#   horizontal = desvio-padrão de log10(tempo) para atingir 20%, 30%, ..., 80% do alvo.
+# Cada uma é calculada contra t (bruto) e contra mu*t (reescalado). Se H3 valesse, a dispersão
+# reescalada seria menor. O bootstrap (pareado nas sementes) dá a fração de reamostragens em que
+# a reescalada é maior.
+def _curva(series, idx=None):
+    series = [series[i] for i in idx] if idx is not None else series
+    ts = sorted({t for s in series for t, _ in s})
+    pos = {t: i for i, t in enumerate(ts)}
+    M = np.full((len(series), len(ts)), np.nan)
+    for i, s in enumerate(series):
+        for t, r in s:
+            M[i, pos[t]] = r
+        fim = s[-1][0] if s else 0
+        ult = np.nan
+        for j, t in enumerate(ts):                 # depois do fim da série, repete o último valor
+            if np.isfinite(M[i, j]):
+                ult = M[i, j]
+            elif t > fim:
+                M[i, j] = ult
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', RuntimeWarning)
+        return np.array(ts, float), np.nanmedian(M, axis=0)
+
+
+def _dispersao(curvas, reescalar, modo, nx=40):
+    xs = {m: (np.log10(t * (m if reescalar else 1.0)), np.log10(np.clip(R, 1e-3, None)))
+          for m, (t, R) in curvas.items()}
+    if modo == 'vertical':
+        lo = max(x[0] for x, _ in xs.values())
+        hi = min(x[-1] for x, _ in xs.values())
+        if hi <= lo:
+            return np.nan
+        g = np.linspace(lo, hi, nx)
+        return float(np.mean(np.std([np.interp(g, x, y) for x, y in xs.values()], axis=0)))
+    niveis = np.log10([0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8])
+    T = []
+    for x, y in xs.values():
+        yy = np.maximum.accumulate(y)
+        T.append([np.interp(nv, yy, x) if yy[-1] >= nv else np.nan for nv in niveis])
+    T = np.array(T)
+    ok = np.sum(np.isfinite(T), axis=0) >= 2
+    return float(np.mean(np.nanstd(T[:, ok], axis=0))) if ok.any() else np.nan
+
+
+def colapso(n_bs=300, semente=7):
+    cel = {}
+    for b in B_VALS:
+        for mu in MU_VALS:
+            arq = os.path.join(PASTA, f'resultados_b{b:.4f}_mu{mu:g}.json')
+            for k, e in json.load(open(arq)).items():
+                if not k.startswith('_'):
+                    cel.setdefault((b, round(e['p'], 2), e['L']), {})[mu] = e
+    rng = np.random.default_rng(semente)
+    print("\n  colapso em mu*t: dispersão entre as curvas medianas de raio (log10)")
+    print(f"  {'b':>5} {'p':>5} {'L':>4} | {'vert. bruto':>11} {'reesc.':>7} {'P(reesc>bruto)':>14} | "
+          f"{'hor. bruto':>10} {'reesc.':>7} {'P(reesc>bruto)':>14}")
+    for (b, p, L), dd in sorted(cel.items()):
+        ms = [m for m in MU_VALS if m in dd and dd[m]['P_esc'] >= 0.5]
+        if len(ms) < 3:
+            continue
+        linha = []
+        n = len(dd[ms[0]]['raio_serie'])
+        amostras = [rng.integers(0, n, n) for _ in range(n_bs)]
+        for modo in ('vertical', 'horizontal'):
+            cur = {m: _curva(dd[m]['raio_serie']) for m in ms}
+            d0, d1 = _dispersao(cur, False, modo), _dispersao(cur, True, modo)
+            maior = []
+            for idx in amostras:
+                ck = {m: _curva(dd[m]['raio_serie'], idx) for m in ms}
+                a, c = _dispersao(ck, False, modo), _dispersao(ck, True, modo)
+                if np.isfinite(a) and np.isfinite(c):
+                    maior.append(c > a)
+            linha.append(f"{d0:11.3f} {d1:7.3f} {np.mean(maior):14.2f}")
+        print(f"  {b:5.2f} {p:5.2f} {L:4d} | {linha[0]} | {linha[1]}")
+
+
+colapso()
